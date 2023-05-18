@@ -221,7 +221,7 @@ chaincodeInvoke() {
 
 chaincodeQuery() {
     setGlobalsForPeer0Org2
-    peer chaincode query -C $CHANNEL_NAME -n ${CC_NAME} -c '{"function": "queryNotarizer","Args":["Block001"]}'
+    peer chaincode query -C $CHANNEL_NAME -n ${CC_NAME} -c '{"function": "queryCircleRateRegistry","Args":["Block001"]}'
 }
 
 # chaincodeQuery

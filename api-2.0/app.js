@@ -12,7 +12,8 @@ const bearerToken = require('express-bearer-token');
 const cors = require('cors');
 const constants = require('./config/constants.json')
 const crypto = require('crypto');
-
+const XLSX = require("xlsx");
+const _ = require("underscore")
 const host = process.env.HOST || constants.host;
 const port = process.env.PORT || constants.port;
 
@@ -20,9 +21,9 @@ const port = process.env.PORT || constants.port;
 const helper = require('./app/helper')
 const invoke = require('./app/invoke')
 const qscc = require('./app/qscc')
-const { 
-	  v1: uuidv1,
-	  v4: uuidv4,
+const {
+    v1: uuidv1,
+    v4: uuidv4,
 } = require('uuid');
 const query = require('./app/query')
 
@@ -270,11 +271,12 @@ app.post('/queryNotarizer', async function (req, res) {
 app.post('/invokeCircleRateRegistry', async function (req, res) {
     try {
         logger.debug('==================== INVOKE ON CHAINCODE ==================');
+        console.log("req", req.body)
         var hash = crypto.createHash('sha256');
         var channelName = req.body.channelName;
         var chaincodeName = req.body.chaincodeName;
         console.log(`chaincode name is :${chaincodeName}`)
-        
+
         let fcn = req.body.fcn;
         logger.debug('channelName  : ' + channelName);
         logger.debug('chaincodeName : ' + chaincodeName);
@@ -291,55 +293,98 @@ app.post('/invokeCircleRateRegistry', async function (req, res) {
             res.json(getErrorMessage('\'fcn\''));
             return;
         }
-        
-        let fileData = createHash(req.body.filePath);
 
-	   
-        //Creating the hash value in the specific format
-        
-        let metaData = createHash(req.body.CircleRateMetaData)
-	console.log("metaData",metaData)
-        
-        
-        let blockchainId = "circleRate_" + await uuidv1()
-        let args=[]
-	args[0]=fileData
-	args[1]=metaData
-	args[2]=blockchainId
-	args[3]=req.body.areaName
-	args[4]=req.body.cityName
-	args[5]=req.body.createdBy
-	args[6]=req.body.updatedBy
-	args[7]=req.body.timestamp
-        
-    
-        let message = await invoke.invokeTransaction(channelName, chaincodeName, fcn, args, req.body.username, req.body.orgname);
+        var workbook = XLSX.readFile('./GoG__IGR__JantriRates.xlsx');
+        var sheet_name_list = workbook.SheetNames;
+        let jsonData = XLSX.utils.sheet_to_json(
+            workbook.Sheets[sheet_name_list[0]]
+        );
+        if (jsonData.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "xml sheet has no data",
+            });
+        }
+        console.log("jsonData", jsonData)
+        let args = jsonData
+        let responseArray=[]
+    //     jsonData.map(async(circleRate) => {
+    //         args[0] = circleRate.District
+    //         args[1] = circleRate.Taluka
+    //         args[2] = circleRate.Survey_No
+    //         args[3] = circleRate.Village
+    //         args[4] = circleRate.Land_Type
+    //         args[5] = req.body.createdBy
+    //         args[6] = req.body.updatedBy
+    //         args[7] = req.body.timestamp
+    //         args[8] = circleRate.Value
+    //         args[9] = circleRate.Category
+    //         args[10] = circleRate.Extension
+   
+
+    //     //Creating the hash value  the specific format
+
+    //     // let metaData = createHash(req.body.CircleRateMetaData)
+    //     // console.log("metaData", metaData)
+
+
+    //     // let blockchainId = "0x" + await uuidv1()
+       let date = new Date()
+       let timestamp = moment(date).format("YYYY-MM-DD hh:mm:ss")
+
+        let message = await invoke.invokeTransaction(channelName, chaincodeName, fcn, args, req.body.createdBy,req.body.updatedBy, timestamp, req.body.username, req.body.orgname);
         console.log(`message result is : ${message}`)
 
-        const response_payload = {
-            result: message,
-            error: null,
-            errorData: null
-        }
-        res.send(response_payload);
 
+      
+    //  })
+
+     res.send({status:true,result:message})
     } catch (error) {
-	console.log("error",error)
-        const response_payload = {
+        console.log("error", error)
+        const responseArray = {
             result: null,
             error: error.name,
             errorData: error.message
         }
-        res.send(response_payload)
+        res.send(responseArray)
     }
 });
-function createHash(data){
-	  let secret = "BlockchainCircleRateRegistry"
 
-	 const sha256Hasher = crypto.createHmac("sha256", secret);
-	 const hash = sha256Hasher.update(data).digest("hex");
-	 return hash;
-	}
+app.post('/readFile', async function (req, res) {
+    try {
+        var workbook = XLSX.readFile('./GoG__IGR__JantriRates.xlsx');
+        var sheet_name_list = workbook.SheetNames;
+        let jsonData = XLSX.utils.sheet_to_json(
+            workbook.Sheets[sheet_name_list[0]]
+        );
+        if (jsonData.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "xml sheet has no data",
+            });
+        }
+        console.log("jsonData", jsonData)
+        return res.status(200).json({
+            success: true,
+            message: jsonData,
+        });
+
+    } catch (err) {
+        return res.status(400).json({
+            success: false,
+            message: err
+        })
+        console.log("error", err)
+    }
+})
+function createHash(data) {
+    let secret = "BlockchainCircleRateRegistry"
+
+    const sha256Hasher = crypto.createHmac("sha256", secret);
+    const hash = sha256Hasher.update(data).digest("hex");
+    return hash;
+}
 app.post('/queryCircleRateRegistry', async function (req, res) {
     try {
         logger.debug('==================== QUERY BY CHAINCODE ==================');
@@ -352,7 +397,7 @@ app.post('/queryCircleRateRegistry', async function (req, res) {
         logger.debug('channelName : ' + channelName);
         logger.debug('chaincodeName : ' + chaincodeName);
         logger.debug('fcn : ' + fcn);
-      
+
 
         if (!chaincodeName) {
             res.json(getErrorMessage('\'chaincodeName\''));
@@ -366,12 +411,12 @@ app.post('/queryCircleRateRegistry', async function (req, res) {
             res.json(getErrorMessage('\'fcn\''));
             return;
         }
-       
-       
+
+
         // args = args.replace(/'/g, '"');
         // args = JSON.parse(args);
         // logger.debug(args);
-	let args =[]
+        let args = []
         args[0] = req.body.blockchainId
         console.log(channelName, chaincodeName, args, fcn, req.body.username, req.body.orgname)
         let message = await query.query(channelName, chaincodeName, args, fcn, req.body.username, req.body.orgname);
@@ -384,6 +429,83 @@ app.post('/queryCircleRateRegistry', async function (req, res) {
 
         res.send(response_payload);
     } catch (error) {
+        const response_payload = {
+            result: null,
+            error: error.name,
+            errorData: error.message
+        }
+        res.send(response_payload)
+    }
+});
+
+app.post('/verifyCircleRateRegistry', async function (req, res) {
+    try {
+        logger.debug('==================== QUERY BY CHAINCODE ==================');
+
+        var channelName = req.body.channelName;
+        var chaincodeName = req.body.chaincodeName;
+        console.log(`chaincode name is :${chaincodeName}`)
+        let fcn = req.body.fcn;
+
+        logger.debug('channelName : ' + channelName);
+        logger.debug('chaincodeName : ' + chaincodeName);
+        logger.debug('fcn : ' + fcn);
+
+
+        if (!chaincodeName) {
+            res.json(getErrorMessage('\'chaincodeName\''));
+            return;
+        }
+        if (!channelName) {
+            res.json(getErrorMessage('\'channelName\''));
+            return;
+        }
+        if (!fcn) {
+            res.json(getErrorMessage('\'fcn\''));
+            return;
+        }
+
+
+        // args = args.replace(/'/g, '"');
+        // args = JSON.parse(args);
+        // logger.debug(args);
+        var workbook = XLSX.readFile('./GoG__IGR__JantriRates_mismatch.xlsx');
+        var sheet_name_list = workbook.SheetNames;
+        let jsonData = XLSX.utils.sheet_to_json(
+            workbook.Sheets[sheet_name_list[0]]
+        );
+        if (jsonData.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "xml sheet has no data",
+            });
+        }
+        console.log("jsonData", jsonData)
+        let args = jsonData
+        console.log(channelName, chaincodeName, args, fcn, req.body.username, req.body.orgname)
+        let message = await query.query(channelName, chaincodeName, args, fcn, req.body.username, req.body.orgname);
+         console.log("message",message)
+         let mismatchArray=[]
+         for(let i=0; i < jsonData.length; i++){
+           for(let j=0; j < message.length; j++){
+             if(jsonData[i].Survey_No == message[j].Survey_No){
+               if(jsonData[i].Value != message[j].Value){
+                 mismatchArray.push(jsonData[i])
+               }
+             }
+           }
+         }
+
+        // console.log("findDuplicate",findDuplicate)
+         const response_payload = {
+            mismatch: mismatchArray,
+            error: null,
+            errorData: null
+        }
+
+        res.send(response_payload);
+    } catch (error) {
+        console.log("error",error)
         const response_payload = {
             result: null,
             error: error.name,

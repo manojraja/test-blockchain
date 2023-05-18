@@ -20,16 +20,19 @@ type SmartContract struct {
 
 // Car :  Define the car structure, with 4 properties.  Structure tags are used by encoding/json library
 type CircleRateData struct {
-	Circle_Rate_File_Hash string `json:"Circle_Rate_File_Hash"`
-	Circle_Rate_Value_Hash string `json:"Circle_Rate_Value_Hash"`
+	District string `json:"District"`
+	Taluka string `json:"Taluka"`
 	//payload
-	AreaName string `json:"AreaName"`
-	CityName string `json:"CityName"`
+	Village string `json:"Village"`
+	Land_Type string `json:"Land_Type"`
+	Category string `json:"Category"`
+	Extension string `json:"Extension"`
+	Value string `json:"Value"`
 	CreatedBy            string `json:"CreatedBy"`
 	UpdatedBy            string `json:"UpdatedBy"`
 	LastUpdatedTimestamp string `json:"LastUpdatedTimestamp"`
-    BlockchainID string `json:"BlockchainID"`
-}
+    Survey_No string `json:"Survey_No"`
+	}
 
 
 var logger = flogging.MustGetLogger("fabcar_cc")
@@ -37,14 +40,14 @@ var logger = flogging.MustGetLogger("fabcar_cc")
 // Init ;  Method for initializing smart contract
 func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
 	var circleRateData = CircleRateData{
-		Circle_Rate_File_Hash: "fdfdsd", Circle_Rate_Value_Hash: "SA123", BlockchainID: "Block21", AreaName: "Tomoko", CityName: "dfdfdf",  CreatedBy: "manoj", UpdatedBy: "manoj", LastUpdatedTimestamp: "d232323",
+		District: "fdfdsd", Taluka: "SA123", Survey_No: "Block21", Village: "Tomoko", Land_Type: "dfdfdf", Category:"category", Extension:"ext1", Value:"200", CreatedBy: "manoj", UpdatedBy: "manoj", LastUpdatedTimestamp: "d232323",
 	}
 	CircleRateDataJSON, err := json.Marshal(circleRateData)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
-	 APIstub.PutState(circleRateData.BlockchainID, CircleRateDataJSON)
+	 APIstub.PutState(circleRateData.Survey_No, CircleRateDataJSON)
      return shim.Success(CircleRateDataJSON)
 }
 
@@ -70,21 +73,24 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 func (s *SmartContract) invokeCircleRateRegistry(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
 	var circleRateData = CircleRateData{
-		Circle_Rate_File_Hash: args[0],
-		Circle_Rate_Value_Hash: args[1],
-		 BlockchainID: args[2], 
-		 AreaName: args[3],
-		 CityName: args[4],  
+		District: args[0],
+		Taluka: args[1],
+		Survey_No: args[2], 
+		Village: args[3],
+		Land_Type: args[4],  
 		 CreatedBy: args[5], 
 		 UpdatedBy: args[6], 
 		 LastUpdatedTimestamp: args[7],
+		 Value: args[8],
+		 Category: args[9],
+		 Extension: args[10],
 	}
 	circleRateDataJSON, err := json.Marshal(circleRateData)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
-	 APIstub.PutState(circleRateData.BlockchainID, circleRateDataJSON)
+	 APIstub.PutState(circleRateData.Survey_No, circleRateDataJSON)
 	return shim.Success(circleRateDataJSON)
 
 }
@@ -99,6 +105,7 @@ func (s *SmartContract) queryCircleRateRegistry(APIstub shim.ChaincodeStubInterf
 	carAsBytes, _ := APIstub.GetState(args[0])
 	return shim.Success(carAsBytes)
 }
+
 
 // Invoke :  Method for INVOKING smart contract
 
