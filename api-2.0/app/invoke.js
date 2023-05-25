@@ -6,10 +6,10 @@ const logger = log4js.getLogger('BasicNetwork');
 const util = require('util')
 
 const helper = require('./helper');
-const { timeStamp } = require('console');
 
 const invokeTransaction = async (channelName, chaincodeName, fcn, args, createdBy, updatedBy, lasttimestamp, username, org_name) => {
     console.log("args", args)
+    console.log("inputs",createdBy, updatedBy, lasttimestamp, username, org_name)
     try {
         logger.debug(util.format('\n============ invoke transaction on channel %s ============\n', channelName));
 
@@ -60,7 +60,7 @@ const invokeTransaction = async (channelName, chaincodeName, fcn, args, createdB
         if (chaincodeName === "notarizer") {
             result = await contract.submitTransaction(fcn, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9], args[10], args[11], args[12], args[13]);
             message = `Successfully added the car asset with key ${args[0]}`
-        } else {
+        } else if (chaincodeName === "circlerateregistry") {
             let transactionArray = []
             for (let i = 0; i < args.length; i++) {
 
@@ -76,6 +76,16 @@ const invokeTransaction = async (channelName, chaincodeName, fcn, args, createdB
             }
             message = transactionArray
 
+        } else if (chaincodeName === "certificateregistry") {
+            result = await contract.submitTransaction(fcn, args[0], args[1], args[2], args[3], args[4], args[5], args[6],args[7],args[8], createdBy, updatedBy, lasttimestamp);
+            // message = `Successfully added the certificate with key ${args[2]}`
+            console.log("result",result)
+            let submitVerifierData = await contract.submitTransaction("storeCertificateKey", args[4], args[5], createdBy, updatedBy, lasttimestamp);
+            console.log("submitVerifierData",submitVerifierData)
+            message = {
+                message: `Successfully added the verifier and certificate data with key ${args[4]}`,
+                verifierId: args[4]
+            }
         }
         console.log("result====", message)
 
@@ -83,12 +93,8 @@ const invokeTransaction = async (channelName, chaincodeName, fcn, args, createdB
         console.log("result====", message)
         // result = JSON.parse(result.toString());
 
-        let response = {
-            message: message,
-            // result
-        }
+        return message
 
-        return response;
 
 
     } catch (error) {

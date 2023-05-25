@@ -43,20 +43,42 @@ const query = async (channelName, chaincodeName, args, fcn, username, org_name) 
         // Get the contract from the network.
         const contract = network.getContract(chaincodeName);
         let result;
-        let resultArray=[]
-        if(args.length<1){
-            result = await contract.evaluateTransaction(fcn, args[0]);
-            result = JSON.parse(result.toString());
-            return result
-        }else{
-            for(let i=0;i<args.length;i++){
-                result = await contract.evaluateTransaction(fcn, args[i].Survey_No);
+        if (chaincodeName === "circlerteregistry") {
+            let resultArray = []
+            if (args.length < 1) {
+                result = await contract.evaluateTransaction(fcn, args[0]);
                 result = JSON.parse(result.toString());
-                resultArray.push(result)
+                return result
+            } else {
+                for (let i = 0; i < args.length; i++) {
+                    result = await contract.evaluateTransaction(fcn, args[i].Survey_No);
+                    result = JSON.parse(result.toString());
+                    resultArray.push(result)
+                }
+                return resultArray
             }
-            return resultArray
+        } else if (chaincodeName === "certificateregistry") {
+            console.log("args",args, "length", args.length)
+            if (fcn==="queryCertificateData") {
+                let getCert = await contract.evaluateTransaction(fcn, args[0]);
+                let certData = JSON.parse(getCert.toString());
+                if(certData){
+                    result = await contract.evaluateTransaction(fcn, certData.CertificateId);
+                    result = JSON.parse(result.toString());
+                    return result
+                }else{
+                    return {
+                        result:"no data found"
+                    }
+                }
+            
+            }else{
+                result = await contract.evaluateTransaction(fcn);
+                result = JSON.parse(result.toString());
+                return result
+            }
         }
-        
+
     } catch (error) {
         console.error(`Failed to evaluate transaction: ${error}`);
         return error.message

@@ -48,7 +48,7 @@ setGlobalsForPeer1Org2() {
 }
 presetup() {
     echo Vendoring Go dependencies ...
-    pushd ./chaincode/circlerateregistry
+    pushd ./chaincode/certificateregistry
     GO111MODULE=on go mod vendor
     popd
     echo Finished vendoring Go dependencies
@@ -57,8 +57,8 @@ presetup() {
 CHANNEL_NAME="mychannel"
 CC_RUNTIME_LANGUAGE="golang"
 VERSION="1"
-CC_SRC_PATH="./chaincode/circlerateregistry"
-CC_NAME="circlerateregistry"
+CC_SRC_PATH="./chaincode/certificateregistry"
+CC_NAME="certificateregistry"
 
 packageChaincode() {
     rm -rf ${CC_NAME}.tar.gz
